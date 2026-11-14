@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (Node 20)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Test
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=critical
+
+  container:
+    name: Build and smoke-test the image
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t deploy-starter:ci .
+
+      - name: Run container and check /health
+        run: |
+          docker run -d --name api -p 3000:3000 -e PORT=3000 deploy-starter:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:3000/health; then
+              echo "container is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "health check failed"
+          docker logs api
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f api || true
