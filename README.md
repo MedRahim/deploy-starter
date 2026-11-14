@@ -24,7 +24,7 @@ docker compose up --build
 curl http://localhost:3000/health
 ```
 
-With Node 20+:
+With Node 22+ (24 LTS recommended):
 
 ```bash
 npm ci

@@ -5,7 +5,7 @@
   "description": "Production-minded Express API starter: Docker, tests, CI and health checks.",
   "main": "src/server.js",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node src/server.js",
